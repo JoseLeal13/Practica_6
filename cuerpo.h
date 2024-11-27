@@ -1,16 +1,19 @@
 #ifndef CUERPO_H
 #define CUERPO_H
-
+#include <cmath> // Para sqrt, pow, atan2
+#include <vector> // Para usar std::vector
 #include <QObject>
+using namespace std;
 
-class Cuerpo : public QObject
-{
+#define G 6.6738e-11 // Constante gravitacional
+
+class Cuerpo : public QObject {
     Q_OBJECT
+
 public:
     explicit Cuerpo(QObject *parent = nullptr);
 
-    Cuerpo(int nombre,
-           float posX,
+    Cuerpo(float posX,
            float posY,
            float m,
            float r,
@@ -18,7 +21,6 @@ public:
            float speedY);
 
     // Getters
-    int getNombre() const;
     float getPosX() const;
     float getPosY() const;
     float getM() const;
@@ -26,9 +28,18 @@ public:
     float getSpeedX() const;
     float getSpeedY() const;
 
-private:
+    void calcularAceleracion(const Cuerpo& otro, float& ax, float& ay) const;
+    void actualizar(float dt, float ax, float ay);
 
-    int nombre;
+    // Gestión estática de cuerpos
+    static vector<Cuerpo*> cuerpos;
+    static void agregarCuerpo(Cuerpo* cuerpo);
+    static const vector<Cuerpo*>& obtenerCuerpos();
+    static void limpiarCuerpos(); // Limpia memoria de los cuerpos almacenados
+
+
+
+private:
     float posX;
     float posY;
     float m;
@@ -37,6 +48,7 @@ private:
     float speedY;
 
 signals:
+    void posicionActualizada(float nuevaPosX, float nuevaPosY);
 };
 
 #endif // CUERPO_H

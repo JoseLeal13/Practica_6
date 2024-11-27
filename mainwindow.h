@@ -9,6 +9,12 @@
 #include <QLabel>
 #include <QFrame>
 #include <QDoubleValidator>
+#include <QTimer>
+#include "cuerpo.h"
+#include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QGraphicsEllipseItem>
+using namespace std;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -25,6 +31,12 @@ public:
     ~MainWindow();
 
 private:
+
+    QGraphicsScene *scene;
+    QGraphicsView *view;
+    QTimer* timer;
+    Cuerpo* cuerpo;
+
     // Campos de entrada
     QLineEdit *posXEdit;
     QLineEdit *posYEdit;
@@ -40,9 +52,14 @@ private:
     QPushButton *reiniciarButton;
     QPushButton *guardarButton;
     QPushButton *cargarButton;
+    QPushButton *agregarButton;
 
     // Configuración de UI
     void setupUI();
+
+    void inicializarGraficos();
+    void actualizarInterfazGrafica();
+    void actualizarSimulacion();
 
     // Funciones relacionadas con los botones
     void onComenzarClicked();
@@ -51,6 +68,7 @@ private:
     void onReiniciarClicked();
     void onGuardarClicked();
     void onCargarClicked();
+    void onAgregarClicked();
 
     Ui::MainWindow *ui;
 };
