@@ -173,24 +173,21 @@ void MainWindow::actualizarSimulacion() {
         }
         // Actualizar posición y velocidad
         const float deltaTime = 0.016f;
-        cuerpos[i]->actualizar(deltaTime, ax, ay);
+        cuerpos[i]->actualizar(deltaTime);
     }
 }
 
 void MainWindow::actualizarInterfazGrafica() {
-
-    const auto& cuerpos = Cuerpo::obtenerCuerpos();
-    auto items = this->scene->items(); // Esto accede correctamente a scene
-
-    if (items.size() != cuerpos.size()) {
-        qDebug() << "Error: Inconsistencia entre cuerpos y elementos gráficos.";
-        return;
+    auto& cuerpos = Cuerpo::obtenerCuerpos();
+    while (scene->items().size() < cuerpos.size()) {
+        QGraphicsEllipseItem* item = new QGraphicsEllipseItem(-10, -10, 20, 20);
+        item->setBrush(Qt::blue);
+        scene->addItem(item);
     }
-    // Actualizar la posición de cada gráfico
+
+    auto items = scene->items();
     for (size_t i = 0; i < cuerpos.size(); ++i) {
-        if (i < items.size()) {
-            items[i]->setPos(cuerpos[i]->getPosX(), cuerpos[i]->getPosY());
-        }
+        items[i]->setPos(cuerpos[i]->getPosX(), cuerpos[i]->getPosY());
     }
 }
 
@@ -209,22 +206,112 @@ void MainWindow::onContinuarClicked() {
 }
 
 void MainWindow::onReiniciarClicked() {
-    qDebug() << "Botón Reiniciar presionado";
-    // Código para reiniciar el proceso
+    auto& cuerpos = Cuerpo::obtenerCuerpos();
+    cuerpos.clear(); // Limpia el vector estático
+    scene->clear();  // Elimina todos los elementos gráficos
+    timer->stop();
+    qDebug() << "Simulación pausada.";
+    qDebug() << "Simulación reiniciada.";
 }
 
 void MainWindow::onGuardarClicked() {
     qDebug() << "Botón Guardar presionado";
-    // Código para guardar en un archivo
+
+    // Cuadro de diálogo para elegir el archivo de guardado
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Guardar archivo"), "", tr("Text Files (*.txt);;All Files (*)"));
+    if (fileName.isEmpty()) {
+        qDebug() << "No se seleccionó archivo para guardar";
+        return;
+    }
+
+    // Abrir archivo para escritura
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qDebug() << "No se pudo abrir el archivo para guardar";
+        return;
+    }
+
+    QTextStream out(&file);
+
+    // Guardar cada cuerpo en el archivo
+    auto& cuerpos = Cuerpo::obtenerCuerpos();
+    for (Cuerpo* cuerpo : cuerpos) {
+        out << cuerpo->getPosX() << " "
+            << cuerpo->getPosY() << " "
+            << cuerpo->getSpeedX() << " "
+            << cuerpo->getSpeedY() << " "
+            << cuerpo->getM() << " "
+            << cuerpo->getR() << "\n";
+    }
+
+    file.close();
+    qDebug() << "Cuerpos guardados en el archivo";
 }
+
 
 void MainWindow::onCargarClicked() {
     qDebug() << "Botón Cargar presionado";
-    // Código para cargar desde un archivo
+
+    // Cuadro de diálogo para elegir el archivo de carga
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Abrir archivo"), "", tr("Text Files (*.txt);;All Files (*)"));
+    if (fileName.isEmpty()) {
+        qDebug() << "No se seleccionó archivo para cargar";
+        return;
+    }
+
+    // Abrir archivo para lectura
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "No se pudo abrir el archivo para cargar";
+        return;
+    }
+
+    QTextStream in(&file);
+    QString line;
+
+    // Limpiar los cuerpos actuales antes de cargar los nuevos
+    auto& cuerpos = Cuerpo::obtenerCuerpos();
+    cuerpos.clear();
+    scene->clear();
+
+    // Leer cada línea y crear un cuerpo
+    while (!in.atEnd()) {
+        line = in.readLine();
+        QStringList parts = line.split(" ");
+        if (parts.size() != 6) {
+            qDebug() << "Línea inválida: " << line;
+            continue;  // Ignorar líneas mal formadas
+        }
+        if (parts.size() == 6) {
+            bool okX, okY, okVx, okVy, okM, okR;
+            float posX = parts[0].toFloat(&okX);
+            float posY = parts[1].toFloat(&okY);
+            float velX = parts[2].toFloat(&okVx);
+            float velY = parts[3].toFloat(&okVy);
+            float masa = parts[4].toFloat(&okM);
+            float radio = parts[5].toFloat(&okR);
+
+            if (okX && okY && okVx && okVy && okM && okR) {
+                // Crear cuerpo y agregarlo al vector estático
+                Cuerpo* nuevoCuerpo = new Cuerpo(posX, posY, velX, velY, masa, radio);
+                cuerpos.push_back(nuevoCuerpo);
+
+                // Crear representación gráfica
+                QGraphicsEllipseItem* item = new QGraphicsEllipseItem(-radio, -radio, radio * 2, radio * 2);
+                item->setBrush(Qt::blue);
+                item->setPos(posX, posY);
+                scene->addItem(item);
+            }
+        }
+    }
+
+    file.close();
+    qDebug() << "Cuerpos cargados desde el archivo";
 }
 
+
 void MainWindow::onAgregarClicked() {
-    // Validar las entradas
+    // Obtén los valores ingresados por el usuario
     bool okX, okY, okM, okR, okVx, okVy;
     float posX = posXEdit->text().toFloat(&okX);
     float posY = posYEdit->text().toFloat(&okY);
@@ -233,17 +320,28 @@ void MainWindow::onAgregarClicked() {
     float velX = speedXEdit->text().toFloat(&okVx);
     float velY = speedYEdit->text().toFloat(&okVy);
 
-    if (okX && okY && okM && okR && okVx && okVy && masa > 0 && radio > 0) {
-        // Crear un nuevo cuerpo y agregarlo al vector
-        cuerpo = new Cuerpo(posX, posY, masa, radio, velX, velY);
-        qDebug() << "Cuerpo agregado:" << posX << posY << masa << radio << velX << velY;
-
-        // Actualizar la interfaz gráfica
-        actualizarInterfazGrafica();
-    } else {
-        qDebug() << "Entradas inválidas.";
+    // Valida las entradas
+    if (!(okX && okY && okM && okR && okVx && okVy)) {
+        QMessageBox::warning(this, "Error de Entrada", "Por favor, introduce valores válidos.");
+        return;
     }
+
+    // Crea un nuevo cuerpo con los valores ingresados
+    Cuerpo* nuevoCuerpo = new Cuerpo(posX, posY, velX, velY, masa, radio);
+
+    // Agrega el nuevo cuerpo al vector de cuerpos (en su clase estática)
+    Cuerpo::obtenerCuerpos().push_back(nuevoCuerpo);
+
+    // Crea la representación gráfica del cuerpo y agrégala a la escena
+    QGraphicsEllipseItem* item = new QGraphicsEllipseItem(-radio, -radio, radio * 2, radio * 2);
+    item->setBrush(Qt::blue);           // Define el color del cuerpo
+    item->setPos(posX, posY);           // Posición inicial
+    scene->addItem(item);               // Añade el gráfico a la escena
+
+    qDebug() << "Nuevo cuerpo agregado con posición (" << posX << "," << posY << ")"
+             << "y velocidad (" << velX << "," << velY << ")";
 }
+
 
 
 /*

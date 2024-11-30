@@ -14,6 +14,9 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QGraphicsEllipseItem>
+#include <QMessageBox>
+#include <QFile>
+#include <QFileDialog>
 using namespace std;
 
 QT_BEGIN_NAMESPACE

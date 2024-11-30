@@ -3,6 +3,7 @@
 #include <cmath> // Para sqrt, pow, atan2
 #include <vector> // Para usar std::vector
 #include <QObject>
+#include <QPixmap>
 using namespace std;
 
 #define G 6.6738e-11 // Constante gravitacional
@@ -28,13 +29,21 @@ public:
     float getSpeedX() const;
     float getSpeedY() const;
 
+    void setVelocidad(float vx, float vy);
+    void setPosicion(float x, float y);
+
+    QPainter *painter;
+    void paint(QPainter *painter);
+
     void calcularAceleracion(const Cuerpo& otro, float& ax, float& ay) const;
-    void actualizar(float dt, float ax, float ay);
+    void actualizar(float dt);
+    void actualizarFuerzas();
+    void aplicarFuerza(float fx, float fy);
 
     // Gestión estática de cuerpos
     static vector<Cuerpo*> cuerpos;
     static void agregarCuerpo(Cuerpo* cuerpo);
-    static const vector<Cuerpo*>& obtenerCuerpos();
+    static vector<Cuerpo*>& obtenerCuerpos();
     static void limpiarCuerpos(); // Limpia memoria de los cuerpos almacenados
 
 
@@ -46,6 +55,8 @@ private:
     float r;
     float speedX;
     float speedY;
+    float ax;
+    float ay;
 
 signals:
     void posicionActualizada(float nuevaPosX, float nuevaPosY);
